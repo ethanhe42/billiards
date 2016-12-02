@@ -18,10 +18,6 @@ public class Yinqing implements Runnable {
         this.game = game;
     }
 
-	public void setCircles( Vector<Ball> balls ) {
-		this.balls = balls;
-	}
-
    	public static boolean cCol(Ball i, Ball j ) {
    		double dx = i.x - j.x;
    		double dy = i.y - j.y; 

@@ -177,15 +177,6 @@ public class Game extends JPanel implements MouseListener, MouseMotionListener, 
 		g.drawRect(Yinqing.tbx - 30, Yinqing.tby - 30, sx + 60, sy + 60);
 		g.drawRect(Yinqing.tbx, Yinqing.tby, sx, sy);
 
-		int xtwof = (int) Math.round((sx / 4) + Yinqing.tbx);
-		int xsf = (int) Math.round((sx / 4 * 3) + Yinqing.tbx);
-		int my = (int) Math.round((sy / 2) + Yinqing.tby);
-		g.fillOval(xtwof - 5, my - 5, 10, 10);
-		g.fillOval(xsf - 5, my - 5, 10, 10);
-		g.setColor(Color.white);
-		g.fillOval(xtwof - 2, my - 2, 4, 4);
-		g.fillOval(xsf - 2, my - 2, 4, 4);
-
 		if (qiudais == null)
 			createQiudais();
 		for (Qiudai p : qiudais){
@@ -194,10 +185,6 @@ public class Game extends JPanel implements MouseListener, MouseMotionListener, 
 			g.setColor(Color.black);
 			g.fillOval(p.x, p.y, p.size, p.size);
 			}
-		Graphics2D g2 = (Graphics2D) g;
-
-		g2.setColor(Color.WHITE);
-		g2.fill3DRect(300, 600, 450, 30, true);
 
 		for (Ball f : jinqiuBalls)
 			pball(g, f);
