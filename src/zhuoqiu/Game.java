@@ -6,123 +6,83 @@ import java.util.*;
 import javax.swing.*;
 import javax.swing.border.*;
 
-public class Game extends JPanel implements MouseListener,
-                                             MouseMotionListener,
-                                             Runnable {
+public class Game extends JPanel implements MouseListener, MouseMotionListener, Runnable {
 
-	//This is Professional Pool table dimensions 4.5' x 9' = 54" x 108" * 8pixels/inch = 432x864 pixels.
-	public static final int SIZEY = 432;
-	public static final int SIZEX = 864;
+	public static final int sy = 425;
+	public static final int sx = 850;
 
+	Vector<Ball> balls;
+	Vector<Ball> jinqiuBalls;
 
-    Vector<Ball> balls; // collection of the circles
-    Vector<Ball> jinqiuBalls; // collection of the circles
-    
 	int baiqiuidx = -1;
 
-    Menu mymenu;   		// to reference shuffle window
-    Yinqing  yinqing;    		// the engine that drives the game
-    
-    public boolean ready;   // must be true to go again
-    public boolean scratched = false;
-    public boolean movingQ = true;
+	Menu mymenu;
+	Yinqing yinqing;
 
-    Vector<Qiudai> qiudais;	//Collection of pockets on the table;
-   	private Thread t;
+	public boolean rd;
+	public boolean skrch = false;
+	public boolean mvBai = true;
 
-	public static final double CoF = 120;
+	Vector<Qiudai> qiudais;
 
+	int mubiaoqiu = -1;
+	boolean zhixiangqiu = false;
+	HashMap<String, Integer> ql;
 
-    int mubiaoqiu = -1;
-    boolean zhixiangqiu = false;
-    HashMap<String, Integer> queueLine;
+	public Game(Menu mymenu) {
+		super();
+		setDoubleBuffered(true);
+		setBackground(new Color(0, 127, 0));
+		setBorder(BorderFactory.createBevelBorder(BevelBorder.RAISED));
+		addMouseListener(this);
+		addMouseMotionListener(this);
+		this.mymenu = mymenu;
+		balls = new Vector<Ball>();
+		yinqing = new Yinqing(this);
 
-    /*******************************************************
-     * constructor. sets up the panel stuff, adds
-     * mouse listenners, starts game engine, etc
-     *
-     * @param shuffle
-     ******************************************************/
-    public Game(Menu mymenu) {
-        //Always call super
-        super();
+		cBalls();
+		yinqing.balls = balls;
 
-        //Makes the moving display smoother
-        setDoubleBuffered(true);
+		createQiudais();
 
-        //Default bg colour
-        setBackground(new Color (50, 100, 50));
-        setBorder(BorderFactory.createBevelBorder(BevelBorder.RAISED));
+		(new Thread(yinqing)).start();
+		(new Thread(this)).start();
 
-        //Add mouse listeners
-        addMouseListener(this);
-        addMouseMotionListener(this);
+		rd = true;
+	}
 
-        //Reference to bouncer
-        this.mymenu = mymenu;
+	public void newGame() {
+		cBalls();
+		yinqing.balls = balls;
+		mvBai = true;
+	}
 
-		//Initialize the circles.
-        balls = new Vector<Ball>();
-        
-        // Initialize engine
-        yinqing = new Yinqing( this );
-
-        createBalls();
-        yinqing.setCircles( balls );
-
-        createQiudais();
-
-        //Start the Engine
-        Thread e = new Thread( yinqing );
-		e.setPriority(Thread.NORM_PRIORITY);
-        e.start();
-
-        // start thread
-        Thread t = new Thread(this);
-        t.setPriority(Thread.NORM_PRIORITY);
-        t.start();
-
-        // ready!
-        ready = true;
-    }
-
-    public void newGame() {
-		//init circles.
-        createBalls();
-        yinqing.setCircles( balls );
-        movingQ = true;
-
-    }
-
-    public void readdQueueBall() {
-		boolean foundQueueBall = false;
-		for ( Ball c : balls ) {
-			if ( c.name.equals("Queue Ball") ) foundQueueBall = true;
+	public void rdBall() {
+		boolean baiqiu = false;
+		for (Ball c : balls) {
+			if (c.mingzi.equals("baiqiu"))
+				baiqiu = true;
 		}
 
-		if ( !foundQueueBall ) {
-			double cx =  800+yinqing.TABLE_OFFSET_X;
-			double cy = SIZEY/2+yinqing.TABLE_OFFSET_Y;
+		if (!baiqiu) {
+			double cx = 800 + Yinqing.tbx;
+			double cy = sy / 2 + Yinqing.tby;
 
-			System.out.println("Adding que ball at (x,y): " + cx + "," + cy);
-
-			Ball b = new Ball(0, "Que Ball", Color.WHITE, cx, cy, 0, 0, 30);
-			balls.add( b );
-			baiqiuidx = findBaiqiuIdx( balls );
-		}
-		else {
-			System.out.println("Queue Ball is already on the table!!");
+			Ball b = new Ball(0, "baiqiu", Color.WHITE, cx, cy, 0, 0, 30);
+			balls.add(b);
+			baiqiuidx = fbaiidx(balls);
 		}
 	}
 
-	public int findBaiqiuIdx( Vector<Ball> balls ) {
+	public int fbaiidx(Vector<Ball> balls) {
 		Ball b;
 		int idx = -1;
-		for ( int i = 0 ; i < balls.size(); i++ ) {
-			b = (Ball)balls.elementAt(i);
-			if ( b.name.equals("Que Ball") ) idx = i;
+		for (int i = 0; i < balls.size(); i++) {
+			b = (Ball) balls.elementAt(i);
+			if (b.mingzi.equals("baiqiu"))
+				idx = i;
 		}
-		if ( idx == -1 ) {
+		if (idx == -1) {
 			System.out.println("没有白球!!!!");
 			System.exit(0);
 		}
@@ -131,465 +91,252 @@ public class Game extends JPanel implements MouseListener,
 
 	public void createQiudais() {
 		qiudais = new Vector<Qiudai>();
-		Qiudai p;
-
-		p = new Qiudai("Top Left",     Qiudai.STANDARD_COLOR, 86, 86, 48);
-		qiudais.add( p );
-
-		p = new Qiudai("Top Mid",      Qiudai.STANDARD_COLOR, 508, 76, 48);
-		qiudais.add( p );
-
-		p = new Qiudai("Top Right",    Qiudai.STANDARD_COLOR, 930, 86, 48);
-		qiudais.add( p );
-
-		p = new Qiudai("Bottom Left",  Qiudai.STANDARD_COLOR, 86, 496, 48);
-		qiudais.add( p );
-
-		p = new Qiudai("Bottom Mid",   Qiudai.STANDARD_COLOR, 508, 506, 48);
-		qiudais.add( p );
-
-		p = new Qiudai("Bottom Right", Qiudai.STANDARD_COLOR, 930, 496, 48);
-		qiudais.add( p );
+		qiudais.add(new Qiudai(100, 80));
+		qiudais.add(new Qiudai(500, 80));
+		qiudais.add(new Qiudai(900, 80));
+		qiudais.add(new Qiudai(100, 500));
+		qiudais.add(new Qiudai(500, 500));
+		qiudais.add(new Qiudai(900, 500));
 
 	}
 
-
-	/*************************************************
-	*
-	*
-	*
-	**************************************************/
-	public void createBalls() {
+	public void cBalls() {
 		balls = new Vector<Ball>();
-    	jinqiuBalls = new Vector<Ball>();
+		jinqiuBalls = new Vector<Ball>();
 
-		Ball ball;
+		double my = sy / 2 + Yinqing.tby - 15;
+		double fr = 150 + Yinqing.tbx;
 
-		double midy = SIZEY/2 + Yinqing.TABLE_OFFSET_Y-15;
-		double firstRow = 150 + Yinqing.TABLE_OFFSET_X;
+		balls.add(new Ball(0, "baiqiu", Color.WHITE, (sx * .75) + Yinqing.tbx, my, 0, 0, 30));
+		balls.add(new Ball(1, "1", new Color(255, 255, 100), fr, my - 62, 0, 0, 30));
+		balls.add(new Ball(2, "2", new Color(50, 50, 255), fr, my - 31, 0, 0, 30));
+		balls.add(new Ball(3, "3", new Color(200, 0, 50), fr, my, 0, 0, 30));
+		balls.add(new Ball(4, "4", new Color(255, 0, 150), fr, my + 31, 0, 0, 30));
+		balls.add(new Ball(5, "5", new Color(255, 100, 0), fr, my + 62, 0, 0, 30));
+		balls.add(new Ball(6, "6", new Color(50, 255, 0), fr + 31, my - 47, 0, 0, 30));
+		balls.add(new Ball(7, "7", new Color(100, 0, 0), fr + 31, my - 16, 0, 0, 30));
+		balls.add(new Ball(8, "8", Color.BLACK, fr + 31, my + 16, 0, 0, 30));
+		balls.add(new Ball(9, "9", new Color(200, 200, 0), fr + 31, my + 47, 0, 0, 30));
+		balls.add(new Ball(10, "10", new Color(150, 0, 255), fr + 62, my - 31, 0, 0, 30));
+		balls.add(new Ball(11, "11", new Color(150, 0, 0), fr + 62, my, 0, 0, 30));
+		balls.add(new Ball(12, "12", new Color(255, 0, 150), fr + 62, my + 31, 0, 0, 30));
+		balls.add(new Ball(13, "13", new Color(150, 255, 150), fr + 93, my - 16, 0, 0, 30));
+		balls.add(new Ball(14, "14", new Color(0, 0, 150), fr + 93, my + 16, 0, 0, 30));
+		balls.add(new Ball(15, "15", new Color(0, 0, 255), fr + 124, my, 0, 0, 30));
 
-		// name, Color color, double x, double y, int speed, double direction, int size) {
+		baiqiuidx = fbaiidx(balls);
 
-		ball = new Ball(0, "Que Ball", Color.WHITE, (SIZEX*.75)+Yinqing.TABLE_OFFSET_X, midy, 0, 0, 30);
-		balls.add( ball );
-
-		//First Row (going down)
-		ball = new Ball(1, "One Ball", new Color(255, 255, 102),firstRow, midy-62, 0, 0, 30);
-		balls.add( ball );
-		ball = new Ball(2, "Two Ball", new Color( 51, 51, 255), firstRow, midy-31, 0, 0, 30);
-		balls.add( ball );
-		ball = new Ball(3, "Three Ball", new Color(204, 0, 51), firstRow, midy, 0, 0, 30);
-		balls.add( ball );
-		ball = new Ball(4, "Four Ball", new Color(255, 0, 153), firstRow, midy+31, 0, 0, 30);
-		balls.add( ball );
-		ball = new Ball(5, "Five Ball", new Color(255, 102, 0), firstRow, midy+62, 0, 0, 30);
-		balls.add( ball );
-
-		//Second Row
-		ball = new Ball(6, "Six Ball", new Color(51, 255, 0),  firstRow+31, midy-47, 0, 0, 30);
-		balls.add( ball );
-		ball = new Ball(7, "Seven Ball", new Color(102, 0, 0), firstRow+31, midy-16, 0, 0, 30);
-		balls.add( ball );
-		ball = new Ball(8, "Eight Ball", Color.BLACK,          firstRow+31, midy+16, 0, 0, 30);
-		balls.add( ball );
-		ball = new Ball(9, "Nine Ball", new Color(204, 204, 0),firstRow+31, midy+47, 0, 0, 30);
-		balls.add( ball );
-
-
-		//Third Row
-		ball = new Ball(10, "Ten Ball", new Color(153, 0, 255), firstRow+62, midy-31, 0, 0, 30);
-		balls.add( ball );
-		ball = new Ball(11, "Eleven Ball", new Color(153, 0, 0), firstRow+62, midy, 0, 0, 30);
-		balls.add( ball );
-		ball = new Ball(12, "Twelve Ball", new Color(255, 0, 153), firstRow+62, midy+31, 0, 0, 30);
-		balls.add( ball );
-		//Forth Row
-		ball = new Ball(13, "Thirteen Ball", new Color(153, 255, 153), firstRow+93, midy-16, 0, 0, 30);
-		balls.add( ball );
-		ball = new Ball(14, "Fourteen Ball", new Color(0, 0, 153), firstRow+93, midy+16, 0, 0, 30);
-		balls.add( ball );
-
-		//Fifth Row
-		ball = new Ball(15, "Fifteen Ball", new Color(0, 0, 255), firstRow+124, midy, 0, 0, 30);
-		balls.add( ball );
-
-
-		baiqiuidx = findBaiqiuIdx( balls );
-
-		for ( int x = 0 ; x < balls.size(); x++ ) {
-			yinqing.calcFriction( ball);
-		}
 
 	}
 
-    private void paintBalls(Graphics g) {
-        try {
-            for (Ball c : balls)
-                paintBall(g, c);
-        }
-        catch (Exception ex) {
-            System.out.println(ex.getMessage());
-            paintBalls(g); // retry so the disks never not get painted
-        }
-    }
 
-    private void paintBall( Graphics g, Ball b ) {
-        if (b == null) return;
-        int fontSize = 10;
-        int dx = (int)b.x+8;
-        int dy = (int)b.y+8;
-        
-        if ( b.ballNumber > 0 && b.ballNumber < 9 ) {
-            g.setColor( b.color );
-            g.fillOval((int)b.x - 1, (int)b.y - 1, 30, 30 );
+	private void pball(Graphics g, Ball b) {
+		if (b == null)
+			return;
+		int dx = (int) b.x + 8;
+		int dy = (int) b.y + 8;
+		int cl = 12;
+		int r2=30;
+		char[] n = (b.bianhao+"").toCharArray();
+		g.setColor(Color.WHITE);
+		g.fillOval((int) b.x - 1, (int) b.y - 1, r2, r2);
+		g.setColor(b.yanse);
 
-            g.setColor( Color.WHITE );
-            g.fillOval(dx, dy, 12, 12 );
+		if (b.bianhao > 0 && b.bianhao < 9) {
+			g.fillOval((int) b.x - 1, (int) b.y - 1, r2, r2);
+			
+			g.setColor(Color.WHITE);
+			g.fillOval(dx, dy, cl, cl);
+			
+			g.setColor(Color.BLACK);
+			g.drawChars(n, 0, 1, (int) (b.x + 12), (int)(b.y + 17));
+		} else if (b.bianhao >= 9) {
+			g.fillRect((int) b.x + 11, (int) b.y, 8, r2);
 
-            char[] num = { Character.forDigit(b.ballNumber, 10) }; 
-            Font font = new Font("Courier New", Font.PLAIN, fontSize);
-            g.setFont(font);
-            g.setColor( Color.BLACK );
-            g.drawChars(num, 0, num.length, (int)StrictMath.round(b.x+12), (int)StrictMath.round(b.y+17) );
-        }
-        else if ( b.ballNumber > 9 ) {
-            g.setColor( Color.WHITE );
-            g.fillOval((int)b.x - 1, (int)b.y - 1, 30, 30 );
-            
-            g.setColor( b.color );
-            int x = (int)b.x + 11;
-            int y = (int)b.y;
-            
-            g.drawLine(x+11, y+1, x+11, y+27);
-            g.drawLine(x+10, y+1, x+10, y+27);
-            g.drawLine(x+9,  y,   x+9, y+28);
-            g.drawLine(x+8,  y,   x+8, y+28);
-            
-            g.fillRect(x, y, 8, 29);
-            
-            g.drawLine(x-1, y,   x-1, y+28);
-            g.drawLine(x-2, y,   x-2, y+28);
-            g.drawLine(x-3, y+1, x-3, y+27);
-            g.drawLine(x-4, y+1, x-4, y+27);
+			g.setColor(Color.WHITE);
+			g.fillOval(dx, dy, cl, cl);
 
-            g.setColor( Color.WHITE );
-            g.fillOval(dx, dy, 12, 12 );
-
-            int bi = b.ballNumber-10;
-            char[] num = { '1', Character.forDigit(bi, 10) }; 
-            Font font = new Font("Courier New", Font.PLAIN, fontSize);
-            g.setFont(font);
-            g.setColor( Color.BLACK );
-            g.drawChars(num, 0, num.length, (int)StrictMath.round(b.x+8), (int)StrictMath.round(b.y+17) );
-        }
-        else if ( b.ballNumber == 9 ) {
-            g.setColor( Color.WHITE );
-            g.fillOval((int)b.x - 1, (int)b.y - 1, 30, 30 );
-            
-            g.setColor( b.color );
-            int x = (int)b.x + 11;
-            int y = (int)b.y;
-            
-            g.drawLine(x+11, y+1, x+11, y+27);
-            g.drawLine(x+10, y+1, x+10, y+27);
-            g.drawLine(x+9,  y,   x+9, y+28);
-            g.drawLine(x+8,  y,   x+8, y+28);
-            
-            g.fillRect(x, y, 8, 29);
-            
-            g.drawLine(x-1, y,   x-1, y+28);
-            g.drawLine(x-2, y,   x-2, y+28);
-            g.drawLine(x-3, y+1, x-3, y+27);
-            g.drawLine(x-4, y+1, x-4, y+27);
-
-            g.setColor( Color.WHITE );
-            g.fillOval(dx, dy, 12, 12 );
-
-            char[] num = { Character.forDigit(b.ballNumber, 10) }; 
-            Font font = new Font("Courier New", Font.PLAIN, fontSize);
-            g.setFont(font);
-            g.setColor( Color.BLACK );
-            g.drawChars(num, 0, num.length, (int)StrictMath.round(b.x+12), (int)StrictMath.round(b.y+17) );
-        }
-        else if ( b.ballNumber == 0 ) {
-            g.setColor( Color.WHITE );
-            g.fillOval((int)b.x - 1, (int)b.y - 1, 30, 30 );
-        }
-    }
-
-	private void paintQiudais( Graphics g) {
-		if ( qiudais == null ) createQiudais();
-		try {
-			for (Qiudai p : qiudais)
-				paintQiudai(g, p);
-			}
-		catch (Exception ex) {
-			System.out.println(ex.getMessage());
-			paintQiudais(g); // retry so the disks never not get painted
-        }
-	}
-
-	private void paintQiudai( Graphics g, Qiudai p) {
-		if ( p == null ) return;
-		g.setColor( p.color );
-		g.fillOval(  p.x, p.y, p.size, p.size );
-	}
-
-	private void paintTray( Graphics g) {
-		Graphics2D g2 = (Graphics2D)g;
-		String trayTitle = "The Fallen Balls";
-		char[] titleChars = trayTitle.toCharArray();
-		//String[] fontNames = GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames();
-		
-		Font font = new Font("Comic Sans MS", Font.BOLD, 20 );
-		g2.setFont(font);
-		g2.drawChars(titleChars, 0, titleChars.length , 450, 590);
-		g2.setColor( Color.GRAY );
-		g2.fill3DRect(299, 598, 450, 33, true);
-		g2.setColor( Color.BLACK );
-		g2.draw3DRect(298, 597, 451, 34, true);
-	
-		paintFallen( g );
-	}
-	
-	public void paintFallen( Graphics g ) {
-		try {
-			for (Ball f : jinqiuBalls)
-				paintBall(g, f);
-		}
-		catch (Exception ex) {
-			System.out.println("ERROR IN paintFallen!: " + ex.getMessage());
+			g.setColor(Color.BLACK);
+			g.drawChars(n, 0, n.length, (int) (b.x + 8), (int) (b.y + 17));
 		}
 	}
 
-	public void addToFallen( Ball c ) {
-		System.out.println("Adding fallen ball: " + c.name );
-		jinqiuBalls.add( c );
+	public void adFall(Ball c) {
+		System.out.println("掉落，" + c.mingzi);
+		jinqiuBalls.add(c);
 		int fallenCount = jinqiuBalls.size();
-		c.x = 270+(fallenCount*31);
+		c.x = 270 + (fallenCount * 31);
 		c.y = 600;
 	}
-	
-    private void paintQueueLine( Graphics g) {
-		g.setColor( Color.WHITE );
-		if ( queueLine == null ) return;
-		g.drawLine( ((Integer)queueLine.get("x1")).intValue(),
-					((Integer)queueLine.get("y1")).intValue(),
-					((Integer)queueLine.get("x2")).intValue(),
-					((Integer)queueLine.get("y2")).intValue());
-	}
 
+	@Override
+	public void paint(Graphics g) {
+		super.paint(g);
 
-	private void paintTable( Graphics g ) {
 		g.setColor(Color.black);
-		//System.out.println("Painting table outline: ");
-		g.drawRect(	yinqing.TABLE_OFFSET_X-30, yinqing.TABLE_OFFSET_Y-30, SIZEX+60, SIZEY+60);
-		g.drawRect(	yinqing.TABLE_OFFSET_X, yinqing.TABLE_OFFSET_Y, SIZEX, SIZEY);
-		
-		int x25  = (int)StrictMath.round((SIZEX/4)   + yinqing.TABLE_OFFSET_X);
-		int x75  = (int)StrictMath.round((SIZEX/4*3) + yinqing.TABLE_OFFSET_X);
-		int midy = (int)StrictMath.round((SIZEY/2)   + yinqing.TABLE_OFFSET_Y);
-		g.fillOval( x25-5, midy-5, 10, 10);
-		g.fillOval( x75-5, midy-5, 10, 10);
-		g.setColor( Color.white );
-		g.fillOval( x25-2, midy-2, 4, 4);
-		g.fillOval( x75-2, midy-2, 4, 4);
+		g.drawRect(Yinqing.tbx - 30, Yinqing.tby - 30, sx + 60, sy + 60);
+		g.drawRect(Yinqing.tbx, Yinqing.tby, sx, sy);
 
-		paintQiudais( g );
-		paintTray( g );
+		int xtwof = (int) Math.round((sx / 4) + Yinqing.tbx);
+		int xsf = (int) Math.round((sx / 4 * 3) + Yinqing.tbx);
+		int my = (int) Math.round((sy / 2) + Yinqing.tby);
+		g.fillOval(xtwof - 5, my - 5, 10, 10);
+		g.fillOval(xsf - 5, my - 5, 10, 10);
+		g.setColor(Color.white);
+		g.fillOval(xtwof - 2, my - 2, 4, 4);
+		g.fillOval(xsf - 2, my - 2, 4, 4);
+
+		if (qiudais == null)
+			createQiudais();
+		for (Qiudai p : qiudais){
+			if (p == null)
+				return;
+			g.setColor(Color.black);
+			g.fillOval(p.x, p.y, p.size, p.size);
+			}
+		Graphics2D g2 = (Graphics2D) g;
+
+		g2.setColor(Color.WHITE);
+		g2.fill3DRect(300, 600, 450, 30, true);
+
+		for (Ball f : jinqiuBalls)
+			pball(g, f);
+
+		for (Ball c : balls)
+			pball(g, c);
+		
+		if (zhixiangqiu){
+			g.setColor(Color.WHITE);
+			if (ql == null)
+				return;
+			g.drawLine(((Integer) ql.get("x1")).intValue(), ((Integer) ql.get("y1")).intValue(),
+					((Integer) ql.get("x2")).intValue(), ((Integer) ql.get("y2")).intValue());
+		}
 	}
 
-    @Override
-    public void paint(Graphics g) {
-        // paint real panel stuff
-        super.paint(g);
+	public void mouseClicked(MouseEvent e) {
+	}
 
-        //Make the table
-        paintTable( g );
-
-        // paint the disks
-        paintBalls(g);
-        if ( zhixiangqiu ) paintQueueLine( g );
-    }
-
-    public void mouseClicked(MouseEvent e) {}
-
-    public void mousePressed(MouseEvent e) {
-		if ( !ready ) {
+	public void mousePressed(MouseEvent e) {
+		if (!rd) {
 			return;
 		}
 
-		System.out.println("I clicked at " + e.getPoint());
+		System.out.println("鼠标点击" + e.getPoint());
 
-		//for some reason I need to subtract 10 pixels from each to get relative coords.
-		int x = e.getPoint().x - 15;
-		int y = e.getPoint().y - 15;
-
-		//See if that point in inside a circle
 		Ball k;
-		for ( int j = 0 ; j < balls.size(); j++ ) {
-			k = (Ball)balls.elementAt(j);
-			int kx = (int)StrictMath.round(k.x);
-			int ky = (int)StrictMath.round(k.y);
-			int xDif = Math.abs( kx - x );
-			int yDif = Math.abs( ky - y );
-			int radius = (int)StrictMath.round(k.size/2);
+		for (int ball = 0; ball < balls.size(); ball++) {
+			k = (Ball) balls.elementAt(ball);
+			int r = (int) (k.daxiao / 2);
 
-
-			if ( xDif <= radius  && yDif <= radius ) {
-				//System.out.println("I clicked inside: " + k.name + "!!!");
-				if ( j == baiqiuidx && !movingQ ) zhixiangqiu = true;
-				mubiaoqiu = j;
-				k.beingDragged = true;
+			if (Math.abs((int) k.x - e.getPoint().x + 15) <= r && Math.abs((int) (k.y) - e.getPoint().y + 15) <= r) {
+				if (ball == baiqiuidx && !mvBai)
+					zhixiangqiu = true;
+				mubiaoqiu = ball;
+				k.mouseDrag = true;
 			}
 		}
-    }
+	}
 
-    public void mouseDragged(MouseEvent e) {
-		if ( !ready ) {
+	public void mouseDragged(MouseEvent e) {
+		if (!rd) {
 			return;
 		}
 
-		Ball queBall = (Ball)balls.elementAt( baiqiuidx );
+		Ball bq = (Ball) balls.elementAt(baiqiuidx);
 
-		int mx = e.getX();
-		int my = e.getY();
-		if ( zhixiangqiu ) {
-			queueLine = new HashMap<String, Integer>();
-			queueLine.put("x1", (int)StrictMath.round(mx));
-			queueLine.put("y1", (int)StrictMath.round(my));
+		int middleX = e.getX();
+		int middleY = e.getY();
+		if (zhixiangqiu) {
+			ql = new HashMap<String, Integer>();
+			ql.put("x1", (int) (middleX));
+			ql.put("y1", (int) (middleY));
 
-			if ( yinqing.aimHelp ) {
-				int bx = (int)StrictMath.round(queBall.x)+15;
-				int by = (int)StrictMath.round(queBall.y)+15;
-				double dx = bx - mx;
-				double dy = by - my;
-				double i = 1000 / ( Math.sqrt( dx*dx + dy*dy ) );
-				double ex = ( dx*i) + mx;
-				double ey = ( dy*i) + my;
+			if (yinqing.miaozhun) {
+				double dx = (bq.x) + 15 - middleX;
+				double dy = (bq.y) + 15 - middleY;
+				double i = 1000 / (Math.sqrt(dx * dx + dy * dy));
 
-				queueLine.put("x2", (int)StrictMath.round(ex));
-				queueLine.put("y2", (int)StrictMath.round(ey));
+				ql.put("x2", (int) ((dx * i) + middleX));
+				ql.put("y2", (int) ((dy * i) + middleY));
+			} else {
+				ql.put("x2", (int) (bq.x) + 15);
+				ql.put("y2", (int) (bq.y) + 15);
 			}
-			else {
-				queueLine.put("x2", (int)StrictMath.round(queBall.x)+15);
-				queueLine.put("y2", (int)StrictMath.round(queBall.y)+15);
-			}
+		} else if (mvBai) {
+			bq.x = middleX;
+			bq.y = middleY;
 		}
-		else if ( movingQ ) {
-			queBall.x = mx;
-			queBall.y = my;
-		}
-    }
+	}
 
-    public void mouseReleased(MouseEvent e) {
-		if ( !ready ) {
+	public void mouseReleased(MouseEvent e) {
+		if (!rd) {
 			return;
 		}
 
-		Ball queBall = (Ball)balls.elementAt( baiqiuidx );
+		Ball bq = (Ball) balls.elementAt(baiqiuidx);
 
-		System.out.println("Released the mouse at: (" + e.getX() + "," + e.getY() + ")!! aiming? " + zhixiangqiu);
-		queueLine = null;
+		System.out.println("鼠标释放" + e.getX() + "," + e.getY());
+		ql = null;
 
-		if ( zhixiangqiu ) {
-			double x1 = e.getX();
-			double y1 = e.getY();
-			double x2 = queBall.x+15;
-			double y2 = queBall.y+15;
+		if (zhixiangqiu) {
+			rd = false;
 
-
-			//Calculate the Queball velocity based on the disance and angle
-			//of the mouse at release from the center of the que ball.
-			// The speed has to be a number between 0 and 10.
-
-			double dx = (x2 - x1)/50;
-			double dy = (y2 - y1)/50;
-			System.out.println("X Distance=" + dx);
-			System.out.println("Y Distance=" + dy);
+			bq.dx = (bq.x + 15 - e.getX()) / 50;
+			bq.dy = (bq.y + 15 - e.getY()) / 50;
 			
-			double k = 1; //( Math.abs(dx) > Math.abs(dy) ) ? 5/Math.abs(dx) : 5/Math.abs(dy);
-			dx = dx * k;
-			dy = dy * k;
+			System.out.println("球速" + bq.dx + ", " + bq.dy);
 
-			ready = false;
+			yinqing.cF(bq);
 
-			queBall.dx = dx;
-			queBall.dy = dy;
-
-			System.out.println("Queue ball speed is: " + queBall.dx + ", " + queBall.dy);
-			//movement = ( queBall.dx == 0 && queBall.dy == 0 ) ? false : true;
-
-			yinqing.calcFriction( queBall );
-
-			//System.out.println( q.toString() );
 			zhixiangqiu = false;
-			SoundEffect.QUE.play();
+			Sound.CLASH.sound();
+		} else if (mvBai) {
+			mvBai = false;
 		}
-		else if ( movingQ ) {
-			movingQ = false;
-			//queBall.x = e.getX()-15;
-			//queBall.y = e.getY()-15;
+	}
 
-			Ball j;
-			for ( int a = 0 ; a < balls.size(); a++ ) {
-				j = (Ball)balls.elementAt( a );
+	public void mouseEntered(MouseEvent e) {
+	}
 
-				if ( a != baiqiuidx ) {
-					// fix possible overlapping
-					double dx = queBall.x - j.x;
-					double dy = queBall.y - j.y;
-					double d2 = (dx*dx) + (dy*dy);
-					double circleSize2 = (j.size/2 + j.size/2) * (j.size/2 + j.size/2);
+	public void mouseExited(MouseEvent e) {
+	}
 
-				}
-			}
-		}
-    }
+	public void mouseMoved(MouseEvent e) {
+		if (mvBai) {
+			Ball b = (Ball) balls.elementAt(baiqiuidx);
 
-    public void mouseEntered(MouseEvent e) {}
+			double nx = e.getX(), ny = e.getY();
 
-    public void mouseExited(MouseEvent e) {}
+			double xr = sx + Yinqing.tbx - 15;
+			double xl = (sx * 0.75) + Yinqing.tbx;
 
-    public void mouseMoved(MouseEvent e) {
-		mymenu.setStatus( "Pointer is at: (" + e.getX() + "," + e.getY() + ")" );
-		if ( movingQ ) {
-			Ball queBall = (Ball)balls.elementAt( baiqiuidx );
-			int mx = e.getX();
-			int my = e.getY();
+			double yb = sy + Yinqing.tby - 15;
+			double yt = Yinqing.tby + 15;
 
-			double newX = queBall.x;
-			double newY = queBall.y;
-			
-			double xRight = SIZEX + yinqing.TABLE_OFFSET_X - 15;
-			double xLeft  = (SIZEX*0.75) + yinqing.TABLE_OFFSET_X;
-			
-			double yBottom = SIZEY + yinqing.TABLE_OFFSET_Y-15;
-			double yTop    = yinqing.TABLE_OFFSET_Y+15;
+			if (nx > xr)
+				nx = xr;
+			else if (nx < xl)
+				nx = xl;
 
-			if ( mx > xRight ) newX = xRight;
-			else if ( mx < xLeft  ) newX = xLeft;
-			else newX = mx;
-				
-			if ( my > yBottom ) newY = yBottom; 
-			else if ( my < yTop ) newY = yTop;
-			else newY = my;
-			
-			queBall.x = newX-15;
-			queBall.y = newY-15;
+			if (ny > yb)
+				ny = yb;
+			else if (ny < yt)
+				ny = yt;
+
+			b.x = nx - 15;
+			b.y = ny - 15;
 		}
 	}
 
 	public void run() {
-        // repaint every 9 ms (~100 fps)
-        while (true) {
-            repaint();
-            try {
-                Thread.sleep(9, 1 );
-            }
-            catch (InterruptedException ex) {
-                System.out.println(ex.getMessage());
-            }
-        }
-    }
+		while (true) {
+			repaint();
+			try {
+				Thread.sleep(9, 1);
+			} catch (InterruptedException ex) {
+				System.out.println(ex.getMessage());
+			}
+		}
+	}
 }
