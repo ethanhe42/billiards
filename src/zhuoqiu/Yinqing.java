@@ -18,24 +18,24 @@ public class Yinqing implements Runnable {
         this.game = game;
     }
 
-   	public static boolean cCol(Ball i, Ball j ) {
-   		double dx = i.x - j.x;
-   		double dy = i.y - j.y; 
+   	public static boolean cCol(Ball a, Ball b ) {
+   		double dx = a.x - b.x;
+   		double dy = a.y - b.y; 
 
    		double ds =  dx * dx + dy * dy;
    		
    		if (  Math.sqrt(ds) < 30 )  {
-   			double kii, kji, kij, kjj;
-   			kji = (dx * i.dx + dy * i.dy) / ds; 
-   			kii = (dx * i.dy - dy * i.dx) / ds; 
-   			kij = (dx * j.dx + dy * j.dy) / ds; 
-   			kjj = (dx * j.dy - dy * j.dx) / ds; 
+   			double kaa, kba, kab, kbb;
+   			kba = (dx * a.dx + dy * a.dy) / ds; 
+   			kaa = (dx * a.dy - dy * a.dx) / ds; 
+   			kab = (dx * b.dx + dy * b.dy) / ds; 
+   			kbb = (dx * b.dy - dy * b.dx) / ds; 
 
-   			i.dy = kij * dy + kii * dx;
-   			i.dx = kij * dx - kii * dy;
+   			a.dy = kab * dy + kaa * dx;
+   			a.dx = kab * dx - kaa * dy;
 
-   			j.dy = kji * dy + kjj * dx;
-   			j.dx = kji * dx - kjj * dy;
+   			b.dy = kba * dy + kbb * dx;
+   			b.dx = kba * dx - kbb * dy;
 
 			Sound.HIT.sound();
    			return true;

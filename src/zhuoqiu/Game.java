@@ -193,7 +193,7 @@ public class Game extends JPanel implements MouseListener, MouseMotionListener, 
 			pball(g, c);
 		
 		if (zhixiangqiu){
-			g.setColor(Color.WHITE);
+			g.setColor(Color.LIGHT_GRAY);
 			if (ql == null)
 				return;
 			g.drawLine(((Integer) ql.get("x1")).intValue(), ((Integer) ql.get("y1")).intValue(),
@@ -238,18 +238,15 @@ public class Game extends JPanel implements MouseListener, MouseMotionListener, 
 			ql = new HashMap<String, Integer>();
 			ql.put("x1", (int) (middleX));
 			ql.put("y1", (int) (middleY));
+			
+			int l = yinqing.miaozhun ? 10000 : 300;
+			double dx = (bq.x) + 15 - middleX;
+			double dy = (bq.y) + 15 - middleY;
+			double i = l / (Math.sqrt(dx * dx + dy * dy));
 
-			if (yinqing.miaozhun) {
-				double dx = (bq.x) + 15 - middleX;
-				double dy = (bq.y) + 15 - middleY;
-				double i = 1000 / (Math.sqrt(dx * dx + dy * dy));
+			ql.put("x2", (int) ((dx * i) + middleX));
+			ql.put("y2", (int) ((dy * i) + middleY));
 
-				ql.put("x2", (int) ((dx * i) + middleX));
-				ql.put("y2", (int) ((dy * i) + middleY));
-			} else {
-				ql.put("x2", (int) (bq.x) + 15);
-				ql.put("y2", (int) (bq.y) + 15);
-			}
 		} else if (mvBai) {
 			bq.x = middleX;
 			bq.y = middleY;
